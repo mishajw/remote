@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "remote"
+version = "0.1.0"
+description = ""
+authors = ["Misha Wagner <mishajw@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+remote = "remote.__main__:main"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fire = "^0.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
