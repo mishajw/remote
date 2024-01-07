@@ -1,19 +1,27 @@
 import importlib.resources as pkg_resources
-from pathlib import Path
+import json
+import os
 import subprocess
+from dataclasses import dataclass
+from pathlib import Path
 from tempfile import TemporaryDirectory
+
 import fire
+
+DATA_DIR = "/root/data"
 
 
 def main():
     fire.Fire(
         dict(
-            build=build,
+            build=run_build,
+            rsync=run_rsync,
+            ssh=run_ssh,
         )
     )
 
 
-def build(name: str, *, poetry_dir: str = "."):
+def run_build(name: str, *, poetry_dir: str = "."):
     poetry_path = Path(poetry_dir).resolve().absolute()
     with pkg_resources.open_text("remote", "Dockerfile") as f:
         dockerfile = f.read()
@@ -30,3 +38,70 @@ def build(name: str, *, poetry_dir: str = "."):
             ["docker", "build", "-t", name, "."],
             cwd=temp_dir,
         )
+
+
+def run_rsync() -> None:
+    instance = _get_instance()
+    _run_rsync(instance)
+
+
+def run_ssh() -> None:
+    instance = _get_instance()
+    _run_ssh(instance, [])
+
+
+def _run_ssh(instance: "_Instance", commands: list[str]) -> None:
+    os.execv(
+        "/usr/bin/ssh",
+        [
+            "ssh",
+            f"root@{instance.ip}",
+            "-p",
+            str(instance.port),
+            *commands,
+        ],
+    )
+
+
+def _run_rsync(instance: "_Instance") -> None:
+    subprocess.check_call(
+        [
+            "rsync",
+            "-r",
+            "-e",
+            f"ssh -p {instance.port}",
+            "--filter=:- .gitignore",
+            "--filter=- .git",
+            ".",
+            f"root@{instance.ip}:{DATA_DIR}",
+        ]
+    )
+    if (Path.cwd() / ".env").exists():
+        subprocess.check_call(
+            [
+                "rsync",
+                "-r",
+                "-e",
+                f"ssh -p {instance.port}",
+                ".env",
+                f"root@{instance.ip}:{DATA_DIR}/.env",
+            ]
+        )
+
+
+@dataclass
+class _Instance:
+    ip: str
+    port: int
+
+
+def _get_instance() -> _Instance:
+    output = subprocess.check_output(
+        ["poetry", "run", "vastai", "show", "instances", "--raw"],
+    )
+    output_json = json.loads(output.decode())
+    assert len(output_json) == 1, f"Expected exactly one instance, found {output_json}"
+    return _Instance(
+        ip=output_json[0]["ssh_host"],
+        port=output_json[0]["ssh_port"],
+    )
