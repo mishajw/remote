@@ -18,5 +18,8 @@ runs:
         username: ${{ inputs.dockerhub_username }}
         password: ${{ inputs.dockerhub_token }}
     - run: pip install git+https://github.com/mishajw/remote
+      shell: bash
     - run: remote build ${{ inputs.docker_username }}/${{ inputs.name }}
+      shell: bash
     - run: docker push ${{ inputs.docker_username }}/${{ inputs.name }}
+      shell: bash
