@@ -22,5 +22,5 @@ runs:
     - run: |
         GIT_SHA=$(git rev-parse --short HEAD)
         IMAGE_NAME="${{ inputs.dockerhub_username }}/${{ inputs.dockerhub_repo }}:$GIT_SHA"
-        remote build ${{ inputs.dockerhub_username }}/${{ inputs.dockerhub_repo }}
+        remote build $IMAGE_NAME
       shell: bash
