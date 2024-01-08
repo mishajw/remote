@@ -1,7 +1,7 @@
 name: 'remote-build'
 description: 'Builds a Docker image for a Python poetry project.'
 inputs:
-  name:
+  dockerhub_repo:
     required: true
   dockerhub_username:
     required: true
@@ -19,7 +19,7 @@ runs:
         password: ${{ inputs.dockerhub_token }}
     - run: pip install git+https://github.com/mishajw/remote
       shell: bash
-    - run: remote build ${{ inputs.docker_username }}/${{ inputs.name }}
+    - run: remote build ${{ inputs.docker_username }}/${{ inputs.dockerhub_repo }}
       shell: bash
-    - run: docker push ${{ inputs.docker_username }}/${{ inputs.name }}
+    - run: docker push ${{ inputs.docker_username }}/${{ inputs.dockerhub_repo }}
       shell: bash
