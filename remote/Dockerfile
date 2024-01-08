@@ -25,7 +25,6 @@ RUN poetry config virtualenvs.create false
 
 # Install Python dependencies via Poetry.
 COPY poetry.lock pyproject.toml ./
-RUN apt-get update && apt-get install -y ssh
 RUN poetry install --no-interaction
 
 # Set up .bashrc.
