@@ -38,6 +38,10 @@ def run_build(name: str, *, poetry_dir: str = "."):
             ["docker", "build", "-t", name, "."],
             cwd=temp_dir,
         )
+        subprocess.run(
+            ["docker", "push", name],
+            cwd=temp_dir,
+        )
 
 
 def run_rsync() -> None:
