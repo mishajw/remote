@@ -17,6 +17,7 @@ def main():
             build=run_build,
             rsync=run_rsync,
             ssh=run_ssh,
+            run=run_command,
         )
     )
 
@@ -49,22 +50,40 @@ def run_rsync() -> None:
     _run_rsync(instance)
 
 
-def run_ssh() -> None:
+def run_ssh(
+    port_forward: int | None = None,
+) -> None:
     instance = _get_instance()
-    _run_ssh(instance, [])
+    _run_ssh(instance, [], port_forward=port_forward)
 
 
-def _run_ssh(instance: "_Instance", commands: list[str]) -> None:
-    os.execv(
-        "/usr/bin/ssh",
-        [
-            "ssh",
-            f"root@{instance.ip}",
-            "-p",
-            str(instance.port),
-            *commands,
-        ],
+def run_command(
+    command: str,
+    port_forward: int | None = None,
+) -> None:
+    print(command)
+    _run_ssh(
+        _get_instance(),
+        [f"cd {DATA_DIR} && {command}"],
+        port_forward=port_forward,
     )
+
+
+def _run_ssh(
+    instance: "_Instance",
+    commands: list[str],
+    port_forward: int | None,
+) -> None:
+    ssh_args = [
+        "ssh",
+        f"root@{instance.ip}",
+        "-p",
+        str(instance.port),
+    ]
+    if port_forward is not None:
+        ssh_args.extend(["-L", f"{port_forward}:localhost:{port_forward}"])
+    ssh_args.extend(commands)
+    os.execv("/usr/bin/ssh", ssh_args)
 
 
 def _run_rsync(instance: "_Instance") -> None:
