@@ -2,11 +2,14 @@ import importlib.resources as pkg_resources
 import json
 import os
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import fire
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.observers import Observer
 
 DATA_DIR = "/root/data"
 
@@ -45,9 +48,27 @@ def run_build(name: str, *, poetry_dir: str = "."):
         )
 
 
-def run_rsync() -> None:
+def run_rsync(*, continuous: bool = False) -> None:
     instance = _get_instance()
-    _run_rsync(instance)
+
+    if not continuous:
+        _run_rsync(instance)
+        return
+
+    observer = Observer()
+    observer.schedule(
+        event_handler=_RsyncEventHandler(instance),
+        path=".",
+        recursive=True,
+    )
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
 
 
 def run_ssh(
@@ -59,12 +80,21 @@ def run_ssh(
 
 def run_command(
     command: str,
+    *,
     port_forward: int | None = None,
+    tmux: str | None = None,
 ) -> None:
-    print(command)
+    print(repr(command))
+    if tmux is None:
+        command = f"cd {DATA_DIR} && {command}"
+    else:
+        command = (
+            f"tmux new-session -s {tmux} bash -c "
+            f'"cd {DATA_DIR} && {command} ; echo Press enter to exit ; read"'
+        )
     _run_ssh(
         _get_instance(),
-        [f"cd {DATA_DIR} && {command}"],
+        [command],
         port_forward=port_forward,
     )
 
@@ -77,6 +107,7 @@ def _run_ssh(
     ssh_args = [
         "ssh",
         f"root@{instance.ip}",
+        "-t",
         "-p",
         str(instance.port),
     ]
@@ -112,7 +143,16 @@ def _run_rsync(instance: "_Instance") -> None:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
+class _RsyncEventHandler(FileSystemEventHandler):
+    instance: "_Instance"
+
+    def on_any_event(self, event: FileSystemEvent):
+        print("Files changed, running rsync")
+        _run_rsync(self.instance)
+
+
+@dataclass(frozen=True)
 class _Instance:
     ip: str
     port: int
