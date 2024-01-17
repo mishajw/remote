@@ -29,3 +29,4 @@ RUN poetry install --no-interaction
 
 # Set up .bashrc.
 RUN echo 'PATH=:$PATH:/opt/conda/bin' >> ~/.bashrc
+ENV PATH="${PATH}:/opt/conda/bin"
