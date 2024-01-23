@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -51,8 +52,8 @@ def run_build(name: str, *, poetry_dir: str = "."):
 def run_rsync(*, continuous: bool = False) -> None:
     instance = _get_instance()
 
+    _run_rsync(instance)
     if not continuous:
-        _run_rsync(instance)
         return
 
     observer = Observer()
@@ -149,7 +150,11 @@ class _RsyncEventHandler(FileSystemEventHandler):
 
     def on_any_event(self, event: FileSystemEvent):
         print("Files changed, running rsync")
-        _run_rsync(self.instance)
+        try:
+            _run_rsync(self.instance)
+        except Exception:
+            print("Error running rsync")
+            traceback.print_exc()
 
 
 @dataclass(frozen=True)
