@@ -1,6 +1,6 @@
 FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 USER root
-WORKDIR /root/yoshimidi
+WORKDIR /root/data
 
 # Apt dependencies.
 RUN apt-get -y update && \
